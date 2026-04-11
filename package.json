@@ -7,9 +7,11 @@
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/http.ts",
     "dev:telegram": "tsx src/telegram/index.ts",
-    "test": "tsx src/test.ts"
+    "test": "tsx src/test.ts",
+    "test:calendar": "tsx src/calendar/test-auth.ts"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
     "@langchain/core": "^0.3.75",
     "@langchain/langgraph": "^0.4.9",
     "@langchain/langgraph-supervisor": "^0.0.19",
@@ -18,6 +20,8 @@
     "axios": "^1.15.0",
     "dotenv": "^17.2.2",
     "fastify": "^5.6.0",
+    "googleapis": "^171.4.0",
+    "langsmith": "^0.5.18",
     "telegraf": "^4.16.3",
     "uuid": "^12.0.0",
     "zod": "^3.25.76"
