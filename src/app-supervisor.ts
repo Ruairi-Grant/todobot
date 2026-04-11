@@ -1,6 +1,6 @@
 import { llm } from "./llm";
 import { add, multiply, echo, add_todos, get_todos, get_todos_summary, complete_todo, clear_todos } from "./tools";
-import { create_calendar_event, list_calendar_events, delete_calendar_event, find_free_slots } from "./calendar/tools";
+import { create_calendar_event, list_calendar_events, delete_calendar_event, find_free_slots, get_calendar_summary } from "./calendar/tools";
 import { makeAgent } from "./agent-factory";
 import { makeSupervisor } from "./supervisor";
 import { TIMEZONE } from "./env";
@@ -22,7 +22,7 @@ const plannerAgent = makeAgent({
   llm,
   tools: [
     add_todos, get_todos, get_todos_summary, complete_todo, clear_todos,
-    create_calendar_event, list_calendar_events, delete_calendar_event, find_free_slots,
+    create_calendar_event, list_calendar_events, delete_calendar_event, find_free_slots, get_calendar_summary,
   ],
   system: `You are a personal planner assistant that manages both todos AND Google Calendar events using tools.
 Today is ${new Date().toISOString().slice(0, 10)}. The user's timezone is ${TIMEZONE}.
@@ -44,7 +44,11 @@ Today is ${new Date().toISOString().slice(0, 10)}. The user's timezone is ${TIME
 - If no end time given, default to 1 hour after start. If no date given, assume today.
 - ALWAYS pass timezone="${TIMEZONE}" when calling create_calendar_event.
 - To check availability, call find_free_slots with the date and minimum duration — it returns pre-formatted free windows. Relay the result directly.
-- Use list_calendar_events only when the user wants to see their actual events, not for availability.
+- To view scheduled events, prefer get_calendar_summary — pass days and offset_days, then relay the formatted result directly.
+  Examples: "what's on tomorrow" → get_calendar_summary({ offset_days: 1 })
+           "my schedule this week" → get_calendar_summary({ days: 7 })
+           "events next 3 days" → get_calendar_summary({ days: 3 })
+- Use raw list_calendar_events only when you need event IDs (e.g. before deleting an event).
 - Create exactly ONE calendar event per request — never duplicate.
 
 ═══ MULTI-TASK REQUESTS ═══

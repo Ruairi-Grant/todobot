@@ -268,3 +268,104 @@ export const delete_calendar_event = tool(
     }),
   }
 );
+
+// ── get_calendar_summary ────────────────────────────────────
+export const get_calendar_summary = tool(
+  async (input) => {
+    const { calendar, calendarId } = await getCalendar();
+    const tz = input.timezone ?? TIMEZONE;
+
+    // Build date range
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (input.offset_days) {
+      startDate.setDate(startDate.getDate() + input.offset_days);
+    }
+
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (input.days ?? 1));
+
+    const res = await calendar.events.list({
+      calendarId,
+      timeMin: startDate.toISOString(),
+      timeMax: endDate.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 50,
+      timeZone: tz,
+    });
+
+    const items = res.data.items ?? [];
+
+    console.log(
+      `[tool:get_calendar_summary] ${startDate.toISOString().slice(0, 10)} → ${endDate.toISOString().slice(0, 10)} | ${items.length} events`,
+    );
+
+    if (items.length === 0) {
+      const rangeStr =
+        (input.days ?? 1) === 1
+          ? startDate.toISOString().slice(0, 10)
+          : `${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`;
+      return `No events found for ${rangeStr}. Your schedule is clear!`;
+    }
+
+    // Group events by date
+    const byDate = new Map<string, typeof items>();
+    for (const e of items) {
+      const dt = e.start?.dateTime ?? e.start?.date ?? "";
+      const day = dt.slice(0, 10);
+      if (!byDate.has(day)) byDate.set(day, []);
+      byDate.get(day)!.push(e);
+    }
+
+    // Format time from ISO datetime
+    const fmtTime = (iso: string | undefined | null) => {
+      if (!iso) return "??:??";
+      const d = new Date(iso);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    };
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const lines: string[] = [];
+
+    for (const [day, events] of byDate) {
+      const d = new Date(day + "T12:00:00");
+      const dayName = dayNames[d.getDay()];
+      lines.push(`**📅 ${dayName} ${day}** (${events.length} event${events.length > 1 ? "s" : ""}):`);
+
+      for (const e of events) {
+        const start = fmtTime(e.start?.dateTime);
+        const end = fmtTime(e.end?.dateTime);
+        const allDay = !e.start?.dateTime;
+        const time = allDay ? "All day" : `${start}–${end}`;
+        const loc = e.location ? ` 📍 ${e.location}` : "";
+        lines.push(`  • ${time} — ${e.summary ?? "(no title)"}${loc}`);
+      }
+      lines.push("");
+    }
+
+    return lines.join("\n").trim();
+  },
+  {
+    name: "get_calendar_summary",
+    description:
+      "Get a formatted summary of calendar events for a time range. " +
+      "Use this for 'what's on tomorrow', 'my schedule this week', 'events in the next 3 days', etc. " +
+      "Returns pre-formatted markdown grouped by day — relay directly to the user.",
+    schema: z.object({
+      days: z
+        .number()
+        .optional()
+        .describe("Number of days to include. Defaults to 1. E.g. 7 for a week, 3 for next 3 days."),
+      offset_days: z
+        .number()
+        .optional()
+        .describe("Days offset from today. 0 = today (default), 1 = tomorrow, -1 = yesterday."),
+      timezone: z
+        .string()
+        .optional()
+        .describe(`IANA timezone. Defaults to ${TIMEZONE}.`),
+    }),
+  }
+);

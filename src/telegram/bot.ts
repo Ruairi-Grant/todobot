@@ -1,4 +1,5 @@
 import { Telegraf } from "telegraf";
+import type { Message } from "telegraf/types";
 import { callLangGraph, chunkMessage } from "../langgraph/client";
 
 if (!process.env.TELEGRAM_BOT_TOKEN) {
@@ -7,11 +8,31 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
+// ── Conversation threading ──────────────────────────────────
+
+/** Walk the reply chain to find the root message */
+function getThreadRoot(message: Message): Message {
+  let current = message;
+  while ("reply_to_message" in current && current.reply_to_message) {
+    current = current.reply_to_message;
+  }
+  return current;
+}
+
+/** Derive a stable conversation ID from the reply chain root */
+function getConversationId(message: Message): string {
+  const root = getThreadRoot(message);
+  return `tg-${message.chat.id}-${root.message_id}`;
+}
+
+// ── Middleware ───────────────────────────────────────────────
+
 // Logging middleware
 bot.use(async (ctx, next) => {
   const msg = ctx.message;
   if (msg && "text" in msg) {
-    console.log(`[telegram] ${ctx.chat?.id}: ${msg.text}`);
+    const threadId = getConversationId(msg);
+    console.log(`[telegram] chat=${ctx.chat?.id} thread=${threadId}: ${msg.text}`);
   }
   await next();
 });
@@ -23,10 +44,13 @@ bot.command("start", (ctx) => {
 
 // /todos command
 bot.command("todos", async (ctx) => {
+  const threadId = getConversationId(ctx.message);
   try {
     await ctx.sendChatAction("typing");
-    const response = await callLangGraph("show my todos", String(ctx.chat.id));
-    await ctx.reply(response || "No todos yet.");
+    const response = await callLangGraph("show my todos", threadId);
+    await ctx.reply(response || "No todos yet.", {
+      reply_parameters: { message_id: ctx.message.message_id },
+    });
   } catch (error) {
     console.error("[telegram] /todos error:", error);
     await ctx.reply("⚠️ Something went wrong fetching todos.");
@@ -36,7 +60,7 @@ bot.command("todos", async (ctx) => {
 // Handle all text messages
 bot.on("text", async (ctx) => {
   const message = ctx.message.text;
-  const threadId = String(ctx.chat.id);
+  const threadId = getConversationId(ctx.message);
 
   try {
     await ctx.sendChatAction("typing");
@@ -45,10 +69,16 @@ bot.on("text", async (ctx) => {
     // Split long messages to stay within Telegram's 4096 char limit
     const chunks = chunkMessage(response);
     for (const chunk of chunks) {
-      await ctx.reply(chunk, { parse_mode: "Markdown" }).catch(() =>
-        // Fallback without Markdown if parsing fails
-        ctx.reply(chunk)
-      );
+      await ctx
+        .reply(chunk, {
+          parse_mode: "Markdown",
+          reply_parameters: { message_id: ctx.message.message_id },
+        })
+        .catch(() =>
+          ctx.reply(chunk, {
+            reply_parameters: { message_id: ctx.message.message_id },
+          })
+        );
     }
   } catch (error) {
     console.error("[telegram] Error:", error);
