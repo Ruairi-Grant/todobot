@@ -1,32 +1,33 @@
 import "./env";
-import { swarmApp } from "./app-swarm";
+import { createInterface } from "readline";
 import { supervisorApp } from "./app-supervisor";
 
-const cfg = { configurable: { thread_id: "demo" } } as const;
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+const threadId = "cli";
 
-const run = async () => {
-  const a = await swarmApp.invoke(
-    { messages: [{ role: "user", content: "talk to bob then add 5 and 7" }] },
-    cfg
-  );
-  const b = await swarmApp.invoke(
-    { messages: [{ role: "user", content: "now multiply result by 3" }] },
-    cfg
-  );
-  const c = await supervisorApp.invoke(
-    {
-      messages: [
-        {
-          role: "user",
-          content: "sum 10 and 15, then write a one-line summary",
-        },
-      ],
-    },
-    cfg
-  );
-  console.log("swarm#1", a.messages.at(-1)?.content);
-  console.log("swarm#2", b.messages.at(-1)?.content);
-  console.log("supervisor", c.messages.at(-1)?.content);
-};
+function prompt() {
+  rl.question("\n🤖 You: ", async (input) => {
+    const trimmed = input.trim();
+    if (!trimmed || trimmed === "quit" || trimmed === "exit") {
+      console.log("Bye!");
+      rl.close();
+      return;
+    }
 
-run();
+    try {
+      const res = await supervisorApp.invoke(
+        { messages: [{ role: "user", content: trimmed }] },
+        { configurable: { thread_id: threadId } }
+      );
+      const last = res.messages.at(-1)?.content ?? "(no response)";
+      console.log(`\n📋 Agent: ${last}`);
+    } catch (err: any) {
+      console.error("Error:", err.message);
+    }
+
+    prompt();
+  });
+}
+
+console.log("TODObot REPL — type a task to plan, or 'quit' to exit");
+prompt();

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "dev:http": "tsx src/http.ts"
+    "dev:http": "tsx src/http.ts",
+    "test": "tsx src/test.ts"
   },
   "dependencies": {
     "@langchain/core": "^0.3.75",
