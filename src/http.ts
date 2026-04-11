@@ -22,7 +22,7 @@ app.post("/supervisor", async (req, reply) => {
   const thread_id = body.thread_id ?? "t1";
   const res = await supervisorApp.invoke(
     { messages },
-    { configurable: { thread_id } }
+    { configurable: { thread_id }, recursionLimit: 50 }
   );
   return reply.send(res);
 });

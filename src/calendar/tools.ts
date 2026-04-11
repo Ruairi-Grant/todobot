@@ -127,6 +127,126 @@ export const list_calendar_events = tool(
   }
 );
 
+// ── find_free_slots ─────────────────────────────────────────
+export const find_free_slots = tool(
+  async (input) => {
+    const { calendar, calendarId } = await getCalendar();
+
+    const date = input.date;
+    const dayStart = `${date}T${input.day_start ?? "08:00:00"}`;
+    const dayEnd = `${date}T${input.day_end ?? "22:00:00"}`;
+    const tz = input.timezone ?? TIMEZONE;
+    const minMinutes = input.min_duration_minutes ?? 60;
+
+    const res = await calendar.events.list({
+      calendarId,
+      timeMin: `${dayStart}+00:00`, // will be interpreted with timeZone
+      timeMax: `${dayEnd}+00:00`,
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 50,
+      timeZone: tz,
+    });
+
+    // Parse events into start/end minute-of-day pairs
+    const busy: { start: number; end: number; title: string }[] = [];
+    for (const e of res.data.items ?? []) {
+      const s = e.start?.dateTime;
+      const en = e.end?.dateTime;
+      if (!s || !en) continue;
+      const sd = new Date(s);
+      const ed = new Date(en);
+      busy.push({
+        start: sd.getHours() * 60 + sd.getMinutes(),
+        end: ed.getHours() * 60 + ed.getMinutes(),
+        title: e.summary ?? "(no title)",
+      });
+    }
+    busy.sort((a, b) => a.start - b.start);
+
+    // Find gaps
+    const toHHMM = (mins: number) => {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    };
+
+    const dayStartMin =
+      parseInt(dayStart.slice(11, 13)) * 60 + parseInt(dayStart.slice(14, 16));
+    const dayEndMin =
+      parseInt(dayEnd.slice(11, 13)) * 60 + parseInt(dayEnd.slice(14, 16));
+
+    const slots: { start: string; end: string; durationMin: number }[] = [];
+    let cursor = dayStartMin;
+
+    for (const event of busy) {
+      if (event.start > cursor) {
+        const gap = event.start - cursor;
+        if (gap >= minMinutes) {
+          slots.push({
+            start: toHHMM(cursor),
+            end: toHHMM(event.start),
+            durationMin: gap,
+          });
+        }
+      }
+      cursor = Math.max(cursor, event.end);
+    }
+    // Gap after last event
+    if (dayEndMin > cursor) {
+      const gap = dayEndMin - cursor;
+      if (gap >= minMinutes) {
+        slots.push({
+          start: toHHMM(cursor),
+          end: toHHMM(dayEndMin),
+          durationMin: gap,
+        });
+      }
+    }
+
+    console.log(
+      `[tool:find_free_slots] ${date} | ${busy.length} events | ${slots.length} free slots (≥${minMinutes}min)`,
+    );
+
+    if (slots.length === 0) {
+      return `No free slots of ${minMinutes}+ minutes found on ${date} (${toHHMM(dayStartMin)}–${toHHMM(dayEndMin)}). The day is fully booked.`;
+    }
+
+    const lines = slots.map(
+      (s) => `• ${s.start} – ${s.end} (${s.durationMin} min free)`,
+    );
+    return [`**Free slots on ${date}** (≥${minMinutes} min):`, "", ...lines].join("\n");
+  },
+  {
+    name: "find_free_slots",
+    description:
+      "Find free time slots on a given day by analyzing calendar events. " +
+      "Returns pre-formatted available windows. Use this when the user asks 'when am I free', " +
+      "'find me a slot', 'what time works', etc. Much better than list_calendar_events for availability queries.",
+    schema: z.object({
+      date: z
+        .string()
+        .describe("The date to check, as YYYY-MM-DD (e.g. 2026-04-12)"),
+      min_duration_minutes: z
+        .number()
+        .optional()
+        .describe("Minimum slot duration in minutes. Defaults to 60."),
+      day_start: z
+        .string()
+        .optional()
+        .describe("Earliest time to consider, as HH:MM:SS. Defaults to 08:00:00."),
+      day_end: z
+        .string()
+        .optional()
+        .describe("Latest time to consider, as HH:MM:SS. Defaults to 22:00:00."),
+      timezone: z
+        .string()
+        .optional()
+        .describe(`IANA timezone. Defaults to ${TIMEZONE}.`),
+    }),
+  }
+);
+
 // ── delete_calendar_event ───────────────────────────────────
 export const delete_calendar_event = tool(
   async (input) => {

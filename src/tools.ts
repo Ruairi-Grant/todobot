@@ -29,8 +29,69 @@ export const get_todos = tool(
   },
   {
     name: "get_todos",
-    description: "Get all current todo items",
+    description: "Get all current todo items as raw JSON. Prefer get_todos_summary for user-facing queries.",
     schema: z.object({}),
+  }
+);
+
+export const get_todos_summary = tool(
+  async (input) => {
+    const todos = readTodos();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let filtered = todos;
+
+    // Filter by done status
+    if (input.status === "pending") filtered = filtered.filter((t) => !t.done);
+    else if (input.status === "done") filtered = filtered.filter((t) => t.done);
+
+    // Filter by date range
+    if (input.due_within_days !== undefined) {
+      const cutoff = new Date(today);
+      cutoff.setDate(cutoff.getDate() + input.due_within_days);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const todayStr = today.toISOString().slice(0, 10);
+      filtered = filtered.filter(
+        (t) => t.dueDate && t.dueDate.slice(0, 10) >= todayStr && t.dueDate.slice(0, 10) <= cutoffStr,
+      );
+    }
+
+    // Sort by due date
+    filtered.sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return a.dueDate.localeCompare(b.dueDate);
+    });
+
+    // Format as markdown
+    if (filtered.length === 0) return "No matching todos found.";
+
+    const lines = filtered.map((t, i) => {
+      const check = t.done ? "✅" : "⬜";
+      const due = t.dueDate ? ` 📅 ${t.dueDate.slice(0, 10)}` : "";
+      return `${i + 1}. ${check} ${t.text}${due}`;
+    });
+
+    const header = `**${filtered.length} todo(s)** (of ${todos.length} total):`;
+    const result = [header, "", ...lines].join("\n");
+    console.log(`[tool:get_todos_summary] status=${input.status ?? "all"} due_within=${input.due_within_days ?? "any"} → ${filtered.length} items`);
+    return result;
+  },
+  {
+    name: "get_todos_summary",
+    description:
+      "Get a filtered, formatted summary of todos. Use this for user-facing queries like 'what's due this week', 'show pending todos', etc. Returns pre-formatted markdown — relay it directly to the user.",
+    schema: z.object({
+      status: z
+        .enum(["all", "pending", "done"])
+        .optional()
+        .describe("Filter by status. Defaults to all."),
+      due_within_days: z
+        .number()
+        .optional()
+        .describe("Only show todos due within this many days from today. E.g. 7 for 'next week', 1 for 'tomorrow'."),
+    }),
   }
 );
 

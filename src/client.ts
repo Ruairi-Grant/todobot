@@ -13,7 +13,7 @@ export async function supervisorClient({
 }): Promise<string> {
   const res = await supervisorApp.invoke(
     { messages: [{ role: "user", content: message }] },
-    { configurable: { thread_id: threadId } }
+    { configurable: { thread_id: threadId }, recursionLimit: 50 }
   );
   return (res.messages.at(-1)?.content as string) ?? "";
 }

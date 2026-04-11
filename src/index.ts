@@ -17,7 +17,7 @@ function prompt() {
     try {
       const res = await supervisorApp.invoke(
         { messages: [{ role: "user", content: trimmed }] },
-        { configurable: { thread_id: threadId } }
+        { configurable: { thread_id: threadId }, recursionLimit: 50 }
       );
       const last = res.messages.at(-1)?.content ?? "(no response)";
       console.log(`\n📋 Agent: ${last}`);
