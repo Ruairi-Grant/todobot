@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/http.ts",
+    "dev:telegram": "tsx src/telegram/index.ts",
     "test": "tsx src/test.ts"
   },
   "dependencies": {
@@ -14,8 +15,10 @@
     "@langchain/langgraph-supervisor": "^0.0.19",
     "@langchain/langgraph-swarm": "^0.0.6",
     "@langchain/openai": "^0.6.11",
+    "axios": "^1.15.0",
     "dotenv": "^17.2.2",
     "fastify": "^5.6.0",
+    "telegraf": "^4.16.3",
     "uuid": "^12.0.0",
     "zod": "^3.25.76"
   },
