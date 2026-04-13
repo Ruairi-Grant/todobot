@@ -1,0 +1,51 @@
+[
+  {
+    "id": "046e66e3-9582-479c-abfb-a1a85751e164",
+    "title": "Plan Granny's Birthday Party",
+    "goal": "Organize a birthday party for granny with a garden theme.",
+    "status": "draft",
+    "subtasks": [
+      {
+        "id": "fb42fc51-05a7-47a2-8135-7bc8ff1bcfcc",
+        "text": "Set the date and time for the party on May 10th.",
+        "done": false
+      },
+      {
+        "id": "882976b5-c686-4dbe-a167-6965f2434b3b",
+        "text": "Create a guest list of 15 people.",
+        "done": false
+      },
+      {
+        "id": "6cf1d1e4-9482-454c-b84f-d6e239c75a02",
+        "text": "Plan decorations and setup for a garden theme.",
+        "done": false
+      },
+      {
+        "id": "411ab5c2-ac6e-4364-b606-c1932c9cf679",
+        "text": "Organize food and drinks within a budget of $500.",
+        "done": false
+      },
+      {
+        "id": "d799f7fc-e41d-42a6-88e7-39f5cc2a1033",
+        "text": "Arrange for activities suitable for the party.",
+        "done": false
+      },
+      {
+        "id": "e0a9682e-be7e-4e16-b1c6-9a4783ac3ed3",
+        "text": "Coordinate the location and setup at home.",
+        "done": false
+      }
+    ],
+    "missing_info": [
+      "What time will the party start?",
+      "What specific food and drinks do you want?",
+      "What activities or games would you like to include?"
+    ],
+    "context": "",
+    "proposed_actions": [],
+    "linked_todo_ids": [],
+    "linked_event_ids": [],
+    "created_at": "2026-04-12T14:06:47.516Z",
+    "updated_at": "2026-04-12T14:06:47.516Z"
+  }
+]

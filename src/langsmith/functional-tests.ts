@@ -1,6 +1,7 @@
 import "../env";
 import { supervisorApp } from "../app-supervisor";
 import { readTodos, writeTodos } from "../todos";
+import { readTasks, writeTasks } from "../tasks";
 import { getLangSmithClient } from "./client";
 import { LANGSMITH_PROJECT } from "../env";
 import type { Run } from "langsmith/schemas";
@@ -91,10 +92,11 @@ async function test1_todoAndCalendar() {
     (t) => !t.text.toLowerCase().includes("buy flowers"),
   );
   writeTodos(cleanTodos);
+  writeTasks([]);
 
   const prompt =
-    `I need to buy flowers for a friend. Schedule it on my calendar for tomorrow at 3pm ` +
-    `and also add a todo to remind me to buy flowers.`;
+    `I need to buy flowers for a friend. Add a quick todo to remind me to buy flowers, ` +
+    `and also schedule it on my calendar for tomorrow at 3pm.`;
 
   console.log(`→ Prompt: "${prompt}"`);
   console.log(`→ Thread: ${tid}`);
@@ -105,24 +107,40 @@ async function test1_todoAndCalendar() {
   // ── Local verification ──
   console.log("── Local Verification ──");
   const todosAfter = readTodos();
+  const tasksAfter = readTasks();
   const flowerTodo = todosAfter.find((t) =>
     t.text.toLowerCase().includes("flower"),
   );
   console.log(
     flowerTodo
       ? `✅ Todo found: "${flowerTodo.text}" (due: ${flowerTodo.dueDate ?? "none"})`
-      : "❌ No todo with 'flower' found in todos.json",
+      : "⚠️  No todo with 'flower' found in todos.json (may have used task system)",
   );
 
   // Check for duplicates
   const flowerTodos = todosAfter.filter((t) =>
     t.text.toLowerCase().includes("flower"),
   );
-  console.log(
-    flowerTodos.length === 1
-      ? "✅ No duplicate todos"
-      : `⚠️  Found ${flowerTodos.length} todos mentioning 'flower' (expected 1)`,
-  );
+  if (flowerTodos.length > 0) {
+    console.log(
+      flowerTodos.length === 1
+        ? "✅ No duplicate todos"
+        : `⚠️  Found ${flowerTodos.length} todos mentioning 'flower' (expected 1)`,
+    );
+  }
+
+  // Check if task system was used
+  if (tasksAfter.length > 0) {
+    console.log(`📋 Tasks created: ${tasksAfter.length}`);
+    for (const t of tasksAfter) {
+      console.log(`   • "${t.title}" (status: ${t.status})`);
+      if (t.proposed_actions.length > 0) {
+        for (const a of t.proposed_actions) {
+          console.log(`      ⚡ [${a.status}] ${a.description}`);
+        }
+      }
+    }
+  }
 
   // ── LangSmith trace verification ──
   console.log("\n── LangSmith Trace Verification ──");
@@ -138,18 +156,26 @@ async function test1_todoAndCalendar() {
     console.log(`      outputs: ${outputs?.slice(0, 300)}`);
   }
 
-  // Check both tools were called
+  // Check which tools were called — accept both old and new patterns
   const calledTools = new Set(toolCalls.map((t) => t.name));
   const hasAddTodos = calledTools.has("add_todos");
   const hasCalendarCreate = calledTools.has("create_calendar_event");
+  const hasProposeAction = calledTools.has("propose_action");
+  const hasCreateTask = calledTools.has("create_task");
+
   console.log(
-    hasAddTodos ? "✅ add_todos was called" : "❌ add_todos was NOT called",
+    hasAddTodos ? "✅ add_todos was called" : "ℹ️  add_todos was NOT called",
   );
   console.log(
     hasCalendarCreate
-      ? "✅ create_calendar_event was called"
-      : "❌ create_calendar_event was NOT called",
+      ? "✅ create_calendar_event was called directly"
+      : hasProposeAction
+        ? "✅ propose_action was called (calendar event gated for approval)"
+        : "❌ Neither create_calendar_event nor propose_action was called",
   );
+  if (hasCreateTask) {
+    console.log("✅ create_task was called (new task system)");
+  }
 
   // Check which agents were involved
   const agentRuns = findAgentRuns(children);
@@ -159,11 +185,12 @@ async function test1_todoAndCalendar() {
   const usedPlanner = agentNames.includes("planner_agent");
   console.log(
     usedPlanner
-      ? "✅ planner_agent was used (handles both todos + calendar)"
+      ? "✅ planner_agent was used"
       : "❌ planner_agent was NOT used",
   );
 
-  return { hasAddTodos, hasCalendarCreate, usedPlanner, flowerTodo: !!flowerTodo };
+  const calendarHandled = hasCalendarCreate || hasProposeAction;
+  return { hasAddTodos, calendarHandled, usedPlanner, flowerTodo: !!flowerTodo, hasCreateTask };
 }
 
 // ── Test 2: Query free slots tomorrow ───────────────────────
@@ -269,11 +296,11 @@ async function test3_todosNextWeek() {
   }
 
   const calledTools = new Set(toolCalls.map((t) => t.name));
-  const hasGetTodos = calledTools.has("get_todos");
+  const hasGetTodos = calledTools.has("get_todos") || calledTools.has("get_todos_summary");
   console.log(
     hasGetTodos
-      ? "✅ get_todos was called"
-      : "❌ get_todos was NOT called",
+      ? `✅ Todo query tool was called (${calledTools.has("get_todos_summary") ? "get_todos_summary" : "get_todos"})`
+      : "❌ Neither get_todos nor get_todos_summary was called",
   );
 
   // Check that the agent routed to todo_agent
@@ -296,6 +323,92 @@ async function test3_todosNextWeek() {
   );
 
   return { hasGetTodos, usedPlanner, mentionsDueDates };
+}
+
+// ── Test 4: Task lifecycle — create, enrich, propose, confirm ──
+async function test4_taskLifecycle() {
+  printSeparator("TEST 4: Task lifecycle (create → enrich → propose → confirm)");
+  const tid = threadId("t4");
+
+  // Clean slate
+  writeTasks([]);
+  writeTodos([]);
+
+  // Step 1: Create a task with missing info
+  const prompt1 = "I need to organize a team meeting next week. Create a task for this.";
+  console.log(`→ Step 1: "${prompt1}"`);
+  const reply1 = await invoke(prompt1, tid);
+  console.log(`← Reply: ${reply1.slice(0, 400)}\n`);
+
+  const tasksStep1 = readTasks();
+  console.log(`   📋 Tasks after step 1: ${tasksStep1.length}`);
+  if (tasksStep1.length > 0) {
+    const task = tasksStep1[0];
+    console.log(`   ✅ Task: "${task.title}" (status: ${task.status})`);
+    console.log(`   📝 Subtasks: ${task.subtasks.length}`);
+    console.log(`   ❓ Missing info: ${task.missing_info.length > 0 ? task.missing_info.join(", ") : "none"}`);
+  } else {
+    console.log("   ❌ No task was created");
+  }
+
+  // Step 2: Provide details to enrich the task
+  const prompt2 = "Wednesday at 2pm, conference room B, 8 attendees, 1 hour. Topic: Q2 planning.";
+  console.log(`\n→ Step 2: "${prompt2}"`);
+  const reply2 = await invoke(prompt2, tid);
+  console.log(`← Reply: ${reply2.slice(0, 400)}\n`);
+
+  const tasksStep2 = readTasks();
+  if (tasksStep2.length > 0) {
+    const task = tasksStep2[0];
+    console.log(`   📋 Task status: ${task.status}`);
+    console.log(`   ❓ Missing info: ${task.missing_info.length > 0 ? task.missing_info.join(", ") : "none (cleared)"}`);
+    console.log(`   ⚡ Proposed actions: ${task.proposed_actions.length}`);
+    for (const a of task.proposed_actions) {
+      console.log(`      • [${a.status}] ${a.description}`);
+    }
+  }
+
+  // Step 3: Approve any proposed actions
+  const tasksBeforeApproval = readTasks();
+  const pendingActions = tasksBeforeApproval[0]?.proposed_actions.filter((a) => a.status === "pending") ?? [];
+  if (pendingActions.length > 0) {
+    const prompt3 = "Yes, go ahead and do it.";
+    console.log(`\n→ Step 3: "${prompt3}"`);
+    const reply3 = await invoke(prompt3, tid);
+    console.log(`← Reply: ${reply3.slice(0, 400)}\n`);
+
+    const tasksStep3 = readTasks();
+    if (tasksStep3.length > 0) {
+      const task = tasksStep3[0];
+      const approved = task.proposed_actions.filter((a) => a.status === "approved");
+      console.log(`   ✅ Approved actions: ${approved.length}`);
+      console.log(`   🔗 Linked event IDs: ${task.linked_event_ids.length}`);
+      console.log(`   🔗 Linked todo IDs: ${task.linked_todo_ids.length}`);
+    }
+  } else {
+    console.log("\n   ℹ️  No pending actions to approve (agent may have executed directly)");
+  }
+
+  // ── LangSmith trace verification ──
+  console.log("\n── LangSmith Trace Verification ──");
+  const children = await getTraceChildren();
+  const toolCalls = findToolCalls(children);
+
+  console.log(`   Total child runs: ${children.length}`);
+  console.log(`   Tool calls: ${toolCalls.length}`);
+  for (const tc of toolCalls) {
+    console.log(`   🔧 [${tc.name}]`);
+  }
+
+  const calledTools = new Set(toolCalls.map((t) => t.name));
+  const taskToolsUsed = ["create_task", "update_task", "propose_action", "confirm_action", "get_task_detail", "get_tasks", "add_subtasks", "complete_subtask"]
+    .filter((t) => calledTools.has(t));
+  console.log(`   Task tools used: ${taskToolsUsed.length > 0 ? taskToolsUsed.join(", ") : "none"}`);
+
+  return {
+    taskCreated: tasksStep1.length > 0,
+    taskToolsUsed,
+  };
 }
 
 // ── Main runner ─────────────────────────────────────────────
@@ -324,6 +437,13 @@ async function main() {
   } catch (e: any) {
     console.log(`❌ Test 3 crashed: ${e.message}`);
     results.test3 = { error: e.message };
+  }
+
+  try {
+    results.test4 = await test4_taskLifecycle();
+  } catch (e: any) {
+    console.log(`❌ Test 4 crashed: ${e.message}`);
+    results.test4 = { error: e.message };
   }
 
   printSeparator("SUMMARY");
