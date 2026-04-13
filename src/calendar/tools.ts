@@ -2,6 +2,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { getCalendar } from "./auth";
 import { TIMEZONE } from "../env";
+// TODO: should tools be in here, or generally, need to shore up the tool archetecture
 
 // ── create_calendar_event ───────────────────────────────────
 export const create_calendar_event = tool(

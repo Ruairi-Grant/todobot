@@ -2,6 +2,7 @@ import type { Run } from "langsmith/schemas";
 import { getLangSmithClient } from "./client";
 import { LANGSMITH_PROJECT } from "../env";
 
+// TODO: What are we truncating, should we really be truncating? 
 function truncate(value: unknown, maxLen = 500): unknown {
   if (value === null || value === undefined) return value;
   const s = typeof value === "string" ? value : JSON.stringify(value);

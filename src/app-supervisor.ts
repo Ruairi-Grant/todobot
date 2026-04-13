@@ -10,6 +10,7 @@ import { makeAgent } from "./agent-factory";
 import { makeSupervisor } from "./supervisor";
 import { TIMEZONE } from "./env";
 
+// TODO: is this agent used for anything?
 const math = makeAgent({
   name: "math_expert",
   llm,
@@ -22,6 +23,9 @@ const writer = makeAgent({
   tools: [echo],
   system: "You write crisp, structured answers.",
 });
+
+// TODO: this prompt needs to be updated
+// TODO: is this used, seems to be mixing concerns with the supervisor
 const plannerAgent = makeAgent({
   name: "planner_agent",
   llm,
@@ -31,6 +35,7 @@ const plannerAgent = makeAgent({
     add_subtasks_tool, complete_subtask_tool,
     propose_action, confirm_action, reject_action,
     // Todo tools (quick items & backward compat)
+    // TODO: we should get rid of this backward compat if it is no longer used/in the project plan
     add_todos, get_todos, get_todos_summary, complete_todo, clear_todos,
     // Calendar tools (read-only are direct; writes go through propose_action for tasks)
     create_calendar_event, list_calendar_events, delete_calendar_event, find_free_slots, get_calendar_summary,

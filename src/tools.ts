@@ -35,6 +35,8 @@ export const get_todos = tool(
 );
 
 export const get_todos_summary = tool(
+  // TODO: understand this function
+  // TODO: are we returning all todos, or just a subset, what is the best behaviour here?
   async (input) => {
     const todos = readTodos();
     const today = new Date();
@@ -42,6 +44,7 @@ export const get_todos_summary = tool(
 
     let filtered = todos;
 
+    // TODO: are status and t.done interdependant, is there a seperation of converns
     // Filter by done status
     if (input.status === "pending") filtered = filtered.filter((t) => !t.done);
     else if (input.status === "done") filtered = filtered.filter((t) => t.done);
@@ -100,6 +103,7 @@ export const add_todos = tool(
     const existing = readTodos();
     const now = new Date().toISOString();
     // Deduplicate: skip items whose text already exists
+    // TODO: why are duplicates happening, is this a dangerouts fallback covering bad llm behaviour
     const existingTexts = new Set(existing.map((t) => t.text.toLowerCase()));
     const newTodos: Todo[] = input.todos
       .filter((item) => !existingTexts.has(item.text.toLowerCase()))

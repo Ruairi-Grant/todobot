@@ -1,3 +1,4 @@
+// TODO: would be great to describe the goal outcome of these tests
 import "./env";
 import { supervisorApp } from "./app-supervisor";
 import { readTodos, writeTodos } from "./todos";
@@ -41,6 +42,7 @@ async function test() {
     console.log("   ⚠️  No task created yet (agent may have used todos instead)");
   }
 
+  // TODO: is this a reply to the preious input, who are thread ids done here?
   // Step 2: Follow up with details — agent should update the task
   console.log("\n→ Step 2: providing details...");
   const r2 = await supervisorApp.invoke(

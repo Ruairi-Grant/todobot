@@ -1,3 +1,4 @@
+// TODO: does this extra file bring any value, is it an unnecessary abstraction
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 

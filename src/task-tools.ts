@@ -16,6 +16,9 @@ import {
 } from "./tasks";
 import { create_calendar_event } from "./calendar/tools";
 import { add_todos } from "./tools";
+// TODO: this is somewhere that mixes propmts with code, not sure if this is great for extensibility
+// seperation between this and todos and tasks is not clear
+// or maybe just move this to a dir for just tools, and have a renames tools.ts beside it
 
 // ── create_task ─────────────────────────────────────────────
 export const create_task = tool(
