@@ -1,21 +1,21 @@
 {
-  "name": "agent-starter",
+  "name": "todobot",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "dev:http": "tsx src/http.ts",
-    "dev:telegram": "tsx src/telegram/index.ts",
-    "test": "tsx src/test.ts",
-    "test:calendar": "tsx src/calendar/test-auth.ts"
+    "dev": "tsx src/entrypoints/cli.ts",
+    "dev:http": "tsx src/entrypoints/http.ts",
+    "dev:telegram": "tsx src/entrypoints/telegram/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:calendar": "tsx src/capabilities/calendar/test-auth.ts"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@langchain/core": "^0.3.75",
     "@langchain/langgraph": "^0.4.9",
     "@langchain/langgraph-supervisor": "^0.0.19",
-    "@langchain/langgraph-swarm": "^0.0.6",
     "@langchain/openai": "^0.6.11",
     "axios": "^1.15.0",
     "dotenv": "^17.2.2",
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^24.3.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^3.1.1"
   }
 }
