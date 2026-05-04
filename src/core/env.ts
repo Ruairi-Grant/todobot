@@ -9,7 +9,7 @@ if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
 export const LANGSMITH_API_KEY =
   process.env.LANGSMITH_API_KEY ?? process.env.LANGCHAIN_API_KEY;
 export const LANGSMITH_PROJECT =
-  process.env.LANGSMITH_PROJECT ?? process.env.LANGCHAIN_PROJECT ?? "todobot";
+  process.env.LANGSMITH_PROJECT ?? process.env.LANGCHAIN_PROJECT ?? "TODObot";
 
 if (LANGSMITH_API_KEY) {
   process.env.LANGCHAIN_TRACING_V2 = "true";

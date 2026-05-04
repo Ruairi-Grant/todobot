@@ -16,8 +16,22 @@ export async function callLangGraph(message: string, threadId: string): Promise<
     thread_id: threadId,
   });
 
+  // Prefer the extracted agent response (skips supervisor's "DONE" echo)
+  if (res.data?.agentResponse) {
+    return res.data.agentResponse;
+  }
+
   const messages = res.data?.messages;
   if (Array.isArray(messages) && messages.length > 0) {
+    // Walk backwards to find the last non-supervisor AI message
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      const name = m?.kwargs?.name ?? m?.name;
+      const content = m?.kwargs?.content ?? m?.content;
+      if (content && name !== "supervisor" && content !== "DONE") {
+        return content;
+      }
+    }
     const last = messages.at(-1);
     return last?.kwargs?.content ?? last?.content ?? JSON.stringify(last);
   }

@@ -1,18 +1,22 @@
 import { createSupervisor } from "@langchain/langgraph-supervisor";
-import { MemorySaver, InMemoryStore } from "@langchain/langgraph";
+import { InMemoryStore } from "@langchain/langgraph";
+import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import path from "path";
+
+const DB_PATH = path.resolve(process.cwd(), "checkpoints.db");
 
 export function makeSupervisor({
   agents,
   llm,
   prompt,
   responseFormat,
-  outputMode = "last_message",
+  outputMode = "full_history",
   includeAgentName,
   addHandoffBackMessages = true,
   supervisorName = "supervisor",
   preModelHook,
   postModelHook,
-  checkpointer = new MemorySaver(),
+  checkpointer = SqliteSaver.fromConnString(DB_PATH),
   store = new InMemoryStore(),
 }: any) {
   const wf = createSupervisor({

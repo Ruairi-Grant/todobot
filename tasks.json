@@ -1,6 +1,6 @@
 [
   {
-    "id": "8cf408b8-ddb4-4439-867e-523a1a92da08",
+    "id": "2627ac02-5e91-4fd2-838c-670f42b8cb38",
     "title": "T",
     "goal": "G",
     "status": "ready",
@@ -11,7 +11,7 @@
     "expected_follow_ups": [],
     "linked_todo_ids": [],
     "linked_event_ids": [],
-    "created_at": "2026-04-29T20:19:58.386Z",
-    "updated_at": "2026-04-29T20:19:58.386Z"
+    "created_at": "2026-05-04T20:03:51.536Z",
+    "updated_at": "2026-05-04T20:03:51.536Z"
   }
 ]

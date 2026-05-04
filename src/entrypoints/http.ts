@@ -17,7 +17,18 @@ app.post("/supervisor", async (req, reply) => {
     { messages },
     { configurable: { thread_id }, recursionLimit: 50 }
   );
-  return reply.send(res);
+  // Extract the agent's response (last meaningful AI message before supervisor's "DONE")
+  const allMessages = res.messages ?? [];
+  const agentResponse = [...allMessages]
+    .reverse()
+    .find(
+      (m: any) =>
+        (m.constructor?.name === "AIMessage" || (m as any)?.kwargs?.content) &&
+        m?.name !== "supervisor" &&
+        (m as any)?.kwargs?.name !== "supervisor"
+    );
+  const content = (agentResponse as any)?.kwargs?.content ?? (agentResponse as any)?.content ?? null;
+  return reply.send({ ...res, agentResponse: content });
 });
 
 // ── JSON API ────────────────────────────────────────────────

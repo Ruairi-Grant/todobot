@@ -18,6 +18,7 @@ build/
 # Data
 todos.json
 token.json
+checkpoints.db
 credentials.json
 
 # Logs
